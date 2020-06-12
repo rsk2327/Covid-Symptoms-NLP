@@ -32,6 +32,19 @@ import plotly.graph_objects as go
 
 
 
+def getCosineDist(x,y):
+    
+    if x.shape == (768,):
+        x = x.reshape(1,-1)
+    if y.shape == (768,):
+        y = y.reshape(1,-1)
+        
+    dist = cosine_similarity(x,y)
+    
+    return dist
+
+
+
 def getSymptomEmbedding(model, tokenizer, df, symptom, symptomToken,  embeddingType = 'last4sum', subset = None):
     
     embeddingList = []
@@ -179,11 +192,12 @@ def getOutput(out):
 
 class Node(object):
     
-    def __init__(self, word, token, ID, vector = None ):
+    def __init__(self, word, token, ID, vector = None, depth = None ):
         
         self.word = word
         self.token = token
         self.ID = ID
+        self.depth = depth
         
         self.edges_in = []
         self.edges_out = []
@@ -191,6 +205,8 @@ class Node(object):
         self.textIDList = []
         
         self.vector = vector
+        
+        self.masterDist = None
         
         
         
@@ -271,6 +287,8 @@ class Graph(object):
         
         self.wordMap = {}
         
+        self.depthMap = {}
+        
         
     def __getitem__(self,word):
         ID = self.wordMap[word]
@@ -278,16 +296,21 @@ class Graph(object):
         return self.nodeList[ID]
         
         
-    def addNode(self, word, token):
+    def addNode(self, word, token , depth):
         
         if word in self.wordMap:
             return
         else:
-            node = Node(word, token, len(self.nodeList))
+            node = Node(word, token, len(self.nodeList), depth = depth)
             
             self.wordMap[word] = len(self.nodeList)
             
             self.nodeList.append(node)
+            
+            if depth in self.depthMap:
+                self.depthMap[depth].append(word)
+            else:
+                self.depthMap[depth] = [word]
             
             
     def addEdge(self, wordA, wordB, numCount, weight, textID):
@@ -359,7 +382,7 @@ class Graph(object):
 def exploreNode(word, depth, q, fullDf, graph, model, tokenizer, maxDepth = 3, topk = 5):
 
     
-    graph.addNode(word,0)
+    graph.addNode(word,0, depth)
     
     print(f"Depth : {depth} Exploring {word}")
     
@@ -424,7 +447,7 @@ def exploreNode(word, depth, q, fullDf, graph, model, tokenizer, maxDepth = 3, t
         
         wordList = set(graph.wordMap.keys())
         
-        graph.addNode(word,0)
+        graph.addNode(word,0, depth+1)
         graph[word].textIDList.append(textIDs)
         graph.addEdge(keyWord, word, numCount, weight, textIDs)
         
