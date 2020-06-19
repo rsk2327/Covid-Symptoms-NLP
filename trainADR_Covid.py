@@ -50,7 +50,7 @@ tokenizer = BertTokenizer.from_pretrained('/data1/roshansk/Exp1/checkpoint-14175
 
 
 covidData = '/data1/roshansk/covid_data/'
-df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 100000)
+df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 150000)
 
 df = df[['message_id','user_id','message']]
 
@@ -63,7 +63,7 @@ df = df[['message_id','user_id','message']]
 # meanEmb = np.mean(meanEmb,0)
 
 
-file = 'fever_9016_Emb.npy'
+file = 'cough_19340_Emb.npy'
 embList = np.load(os.path.join('EmbFolder/',file))
 meanEmb = np.mean(embList,0)
 
@@ -71,27 +71,31 @@ meanEmb = np.mean(embList,0)
 
 graph = Graph()
 
-graph.addNode('fever',0,0)
-graph['fever'].vector = meanEmb
+graph.addNode('cough',0,0)
+graph['cough'].vector = meanEmb
 
 outputFolder = '/data1/roshansk/ADRModel_DataStore/'
+modelFolder = './ModelFolder/Covid_cough_5_7/'
 
 q = deque()
-q.append(('fever',0))
+q.append(('cough',0))
 
-ADR = ADRModel(df, model, tokenizer, graph, outputFolder, q,  useMasterEmb=True, masterContrib=0.4, numThreshold = 100000)
+# ADR = ADRModel(df, model, tokenizer, graph, outputFolder, q,  useMasterEmb=True, masterContrib=0.4, numThreshold = 100000)
+ADR = ADRModel(df, model, tokenizer, graph, outputFolder, modelOutputFolder = modelFolder, 
+               queue = q,  useMasterEmb=True, masterContrib=0.4, numThreshold=150000, saveEveryDepth= True)
+
 
 print("Training started")
 
-ADR.trainModel(maxDepth=3,topk=5) 
+ADR.trainModel(maxDepth=5,topk=7) 
 
 print("Training finished")
 
 
-ADR.model = None
-ADR.tokenizer = None
-ADR.df = None
+# ADR.model = None
+# ADR.tokenizer = None
+# ADR.df = None
       
-pickle.dump(ADR, open('Covid_fever_3_5_0.4.pkl','wb'))
+# pickle.dump(ADR, open('Covid_fever_3_5_0.4.pkl','wb'))
 
 print("Model saved")
