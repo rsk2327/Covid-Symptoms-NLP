@@ -40,7 +40,7 @@ import marshal
 
 
 covidData = '/data1/roshansk/covid_data/'
-df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 300000)
+df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 500000)
 df = df[['message_id','user_id','message']]
 
 model = BertForSequenceClassification.from_pretrained('/data1/roshansk/Exp1/checkpoint-141753-epoch-1', output_hidden_states= True)
