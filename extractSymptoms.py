@@ -1,3 +1,9 @@
+###############################
+### Extract Symptoms 
+### VERSION 2
+### PyTorch GPU 
+###############################
+
 import pandas as pd
 import numpy as np
 
@@ -17,49 +23,78 @@ from sklearn.metrics.pairwise import euclidean_distances
 
 from tqdm import tqdm
 import torch
-
+import time
 import pickle
 
-def getSimilarWords(model, df, symptom, embList, similarityThreshold = 0.3, numThreshold = 10000):
-    
-     
-    output = []
-    
-    for i in tqdm(range(len(df))):
+from dask.distributed import Client
+
+import torch
+from torch.nn import CosineSimilarity
+
+from functools import partial
+from itertools import *
+
+import itertools
+
+
+device='cuda:2'
+
+
+def getSimilarWords(tokenizer, combinedOutputFolder, symptom, meanEmb, similarityThreshold = 0.3, numThreshold = 150000, numComp = 10000):
         
-        if symptom in df.iloc[i]['message'].lower():
-                 
-            tokens = tokenizer.encode(df.iloc[i]['message'].lower())
-            decoded = tokenizer.decode(tokens).split(" ")
-            logits, hidden_states = model(torch.Tensor(tokens).unsqueeze(0).long())
+    output = []
 
-            hidden_states = torch.stack(hidden_states).squeeze(1).permute(1,0,2)
-            
-            
-            hidden_states = hidden_states[:,9:13,:]
-            hidden_states = torch.sum(hidden_states,1).detach().cpu().numpy()
-            
-            similarity = cosine_similarity(hidden_states, embList.reshape(1,-1)).reshape(-1)
+    symptomToken = tokenizer.encode(symptom)[1]
 
-                            
-            index = np.where([similarity> similarityThreshold])[1]
+    fileList = os.listdir(combinedOutputFolder)
+    
+    cos = CosineSimilarity(dim=1, eps=1e-6)
 
-            selectTokens = np.array(tokens)[index]
-            selectSim = similarity[index]
-                      
+    examineCount = 0
+    
 
+    for i in tqdm(range(len(fileList))):
 
-            for j in range(len(index)):
-                token = tokenizer.ids_to_tokens[selectTokens[j]]
-                sim = selectSim[j]
-                output.append((token, sim,i))
-
-            
-        if i==numThreshold:
+        if examineCount >= numThreshold:
             break
-            
-    return output
 
+
+        filename = os.path.join(combinedOutputFolder, f"{i}.pkl")
+        subDict = pickle.load(open(filename,'rb'))
+
+        IDList = subDict['id']
+        tokenList = subDict['token']
+        embList = subDict['emb']
+        
+        arrA = torch.from_numpy(meanEmb.reshape(1,-1)).to(device).type(torch.cuda.FloatTensor)
+        arrB = torch.from_numpy(embList).to(device).type(torch.cuda.FloatTensor)
+        
+#         arrA = torch.from_numpy(meanEmb.reshape(1,-1)).to(device)
+#         arrB = torch.from_numpy(embList).to(device)
+        
+        sim = cos(arrA,arrB).cpu().numpy().reshape(-1)
+        
+        del arrA
+        del arrB
+        
+        sim = np.round(sim,4)
+
+        index= np.where([sim> similarityThreshold])[1]
+
+        tokenList_ = tokenList[index]
+        IDList_ = IDList[index]
+        simList = sim[index]
+
+        out = [(x,y,z) for x,y,z in zip(tokenList_, simList, IDList_)]
+        print(len(out))
+        
+
+        output += out
+
+        examineCount += numComp
+        
+
+    return output
 
 
 
@@ -70,9 +105,13 @@ def getSimilarWords(model, df, symptom, embList, similarityThreshold = 0.3, numT
 #  'fatigue_16342_Emb.npy',
 #  'cough_19340_Emb.npy'
 
-file = 'fatigue_16342_Emb.npy'
-dumpFile = '/data1/roshansk/SymptomAnalysis/fatigue_10k_thresh0.3.p'
+
+combinedOutputFolder = '/data2/roshansk/ADRModel_DataStore_10000/'
+numComp = 10000
+numThreshold = 1000000
+file = 'cough_19340_Emb.npy'
 symptom = ''
+dumpFile = '/data1/roshansk/SymptomAnalysis/cough_1000k_thresh0.3_v2.p'
 
 ########################
 
@@ -80,26 +119,29 @@ symptom = ''
 dataFolder = '/data1/roshansk/covid_data/'
 fileList = os.listdir(dataFolder)
 
-df = pd.read_csv(os.path.join(dataFolder, fileList[0]), nrows = 1500000)
-
-model = BertForSequenceClassification.from_pretrained('/data1/roshansk/Exp1/checkpoint-141753-epoch-1', output_hidden_states= True)
+df = pd.read_csv(os.path.join(dataFolder, fileList[0]), nrows = numThreshold)
 
 tokenizer = BertTokenizer.from_pretrained('/data1/roshansk/Exp1/checkpoint-141753-epoch-1')
 
 
 
 
+
 embList = np.load(os.path.join('EmbFolder/',file))
-embList = np.mean(embList,0)
+meanEmb = np.mean(embList,0)
 
 
-out = getSimilarWords(model, df, symptom, embList, similarityThreshold = 0.3, numThreshold = 10000)
+startTime = time.time()
+
+result = getSimilarWords(tokenizer, combinedOutputFolder, symptom, 
+                meanEmb, similarityThreshold = 0.3, numThreshold = numThreshold, numComp = numComp)
+
+print(len(result))
+
+print(f"Time taken : {time.time() - startTime}")
 
 
-
-
-
-pickle.dump( out, open( dumpFile, "wb" ) )
+pickle.dump( result, open( dumpFile, "wb" ) )
 
 print(f"Saved data for {file}")
 
