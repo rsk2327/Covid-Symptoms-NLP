@@ -39,7 +39,7 @@ from utils import *
 
 import marshal
 
-from ADRModel import *
+from ADRModel_v5 import *
 
 
 
@@ -50,7 +50,7 @@ tokenizer = BertTokenizer.from_pretrained('/data1/roshansk/Exp1/checkpoint-14175
 
 
 covidData = '/data1/roshansk/covid_data/'
-df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 150000)
+df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 1000000)
 
 df = df[['message_id','user_id','message']]
 
@@ -75,19 +75,24 @@ graph.addNode('cough',0,0)
 graph['cough'].vector = meanEmb
 
 outputFolder = '/data1/roshansk/ADRModel_DataStore/'
-modelFolder = './ModelFolder/Covid_cough_5_7/'
+combinedOutputFolder = '/data2/roshansk/ADRModel_DataStore_10000/'
+modelFolder = './ModelFolder/Covid_cough_2_10/'
 
 q = deque()
 q.append(('cough',0))
 
 # ADR = ADRModel(df, model, tokenizer, graph, outputFolder, q,  useMasterEmb=True, masterContrib=0.4, numThreshold = 100000)
-ADR = ADRModel(df, model, tokenizer, graph, outputFolder, modelOutputFolder = modelFolder, 
-               queue = q,  useMasterEmb=True, masterContrib=0.4, numThreshold=150000, saveEveryDepth= True)
+# ADR = ADRModel(df, model, tokenizer, graph, outputFolder, modelOutputFolder = modelFolder, 
+#                queue = q,  useMasterEmb=True, masterContrib=0.4, numThreshold=500000, saveEveryDepth= True)
+
+
+ADR = ADRModel(df, model, tokenizer, graph, outputFolder, combinedOutputFolder, modelOutputFolder = modelFolder, 
+               queue = q,  useMasterEmb=True, masterContrib=0.4, numThreshold=1000000, saveEveryDepth = True)
 
 
 print("Training started")
 
-ADR.trainModel(maxDepth=5,topk=7) 
+ADR.trainModel(maxDepth=2,topk=10) 
 
 print("Training finished")
 
