@@ -32,6 +32,26 @@ import plotly.graph_objects as go
 
 
 
+def evaluateText(text, model, tokenizer, compareEmb):
+    tokens = tokenizer.encode(text)
+    temp = tokenizer.convert_ids_to_tokens(tokens)
+
+    decoded = tokenizer.decode(tokens).split(" ")
+    logits, hidden_states = model(torch.Tensor(tokens).unsqueeze(0).long())
+    hidden_states = torch.stack(hidden_states).squeeze(1).permute(1,0,2)
+
+    emb = torch.sum(hidden_states[:,9:13,:],1).detach().cpu().numpy()
+
+    sim = cosine_similarity(emb, compareEmb.reshape(1,-1)).reshape(-1)
+
+    sim = cosine_similarity(emb, compareEmb.reshape(1,-1)).reshape(-1)
+
+    for i in range(len(temp)):
+        print(f"{temp[i]:10s} : {str(np.round(sim[i],3))}")
+        
+        
+
+
 def getCosineDist(x,y):
     
     if x.shape == (768,):
