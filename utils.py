@@ -484,6 +484,6 @@ def exploreNode(word, depth, q, fullDf, graph, model, tokenizer, maxDepth = 3, t
         
         
         
-#         exploreNode(word,depth+1,q= q, fullDf = fullDf, graph = graph, model = model, tokenizer = tokenizer, maxDepth=maxDepth, topk=topk)
+
         
     

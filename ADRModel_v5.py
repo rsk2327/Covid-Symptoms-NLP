@@ -59,7 +59,7 @@ from itertools import *
 import itertools
 
 
-device='cuda:1'
+device='cuda:2'
 
 
 
@@ -96,7 +96,7 @@ class ADRModel(object):
         self.masterEmbList = []
         
         
-        self.generateStates()
+#         self.generateStates()
         
         
     def generateStates(self):
@@ -451,6 +451,8 @@ class ADRModel(object):
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
                 )
+        
+#         fig.update_traces(textfont_size=14)
         
         fig.show()
         

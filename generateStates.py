@@ -1,3 +1,12 @@
+################################################
+# This code processes your messages and saves the embeddings of tokens in a message as separate files. These embeddings of tokens # is later used during the iterative search process to find tokens similar to the context embedding. This code has 2 parts
+# 1. Generates embeddings of each message individually by running it through the BERT model. This results in a single saved file 
+# for each message
+# 2. Collates individual files (typically 10000) from the first step into bigger files. This is done to speed up the iterative 
+# search process
+################################################
+
+
 import pandas as pd
 import numpy as np
 
@@ -39,6 +48,7 @@ from plotting import *
 import marshal
 
 
+
 covidData = '/data1/roshansk/covid_data/'
 df = pd.read_csv(os.path.join(covidData, 'messages_cm_mar1_apr23_noRT.csv'), nrows = 1000000)
 df = df[['message_id','user_id','message']]
@@ -48,6 +58,12 @@ tokenizer = BertTokenizer.from_pretrained('/data1/roshansk/Exp1/checkpoint-14175
 
 outputFolder = '/data1/roshansk/ADRModel_DataStore/'
 embeddingType = 'last4sum'
+
+
+###########################
+######### PART 1 ##########
+###########################
+
 
 # device = 'cuda:1'
 
@@ -85,9 +101,10 @@ embeddingType = 'last4sum'
 
 # print(f"Time taken : {time.time() - startTime}")
     
+###########################
+######### PART 2 ##########
+###########################
 
-#### AGG FILES ########
-    
 def aggFiles(index, numComp, df, tokenizer, inputFolder, outputFolder):
     
     filename = os.path.join(outputFolder, f"{index}.pkl")
@@ -133,7 +150,7 @@ for i in tqdm(range(90,100)):
     aggFiles(i, numComp, df, tokenizer, inputFolder, outputFolder)
         
     
-    
+################################################################################# 
     
     
     

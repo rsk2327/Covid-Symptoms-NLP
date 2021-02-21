@@ -111,7 +111,7 @@ numComp = 10000
 numThreshold = 1000000
 file = 'cough_19340_Emb.npy'
 symptom = ''
-dumpFile = '/data1/roshansk/SymptomAnalysis/cough_1000k_thresh0.3_v2.p'
+dumpFile = '/data1/roshansk/SymptomAnalysis/combined_1000k_thresh0.4_v2.p'
 
 ########################
 
@@ -125,16 +125,17 @@ tokenizer = BertTokenizer.from_pretrained('/data1/roshansk/Exp1/checkpoint-14175
 
 
 
-
-
-embList = np.load(os.path.join('EmbFolder/',file))
+fileList = [    'fever_9016_Emb.npy', 'fatigue_16342_Emb.npy', 'cough_19340_Emb.npy']
+embList = []
+for file in fileList:
+    embList += list(np.load(os.path.join('EmbFolder/',file)))
 meanEmb = np.mean(embList,0)
 
 
 startTime = time.time()
 
 result = getSimilarWords(tokenizer, combinedOutputFolder, symptom, 
-                meanEmb, similarityThreshold = 0.3, numThreshold = numThreshold, numComp = numComp)
+                meanEmb, similarityThreshold = 0.4, numThreshold = numThreshold, numComp = numComp)
 
 print(len(result))
 
